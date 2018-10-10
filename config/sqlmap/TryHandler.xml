@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tryHandler">
+	<select id="selectByHCode" parameterType="string" resultType="TryHandlerDetail">
+		select 
+			t.* 
+		from 
+			tryhandler t 
+		where 
+			hcode = #{hstr,javaType=String,jdbcType=INTEGER,typeHandler=cn.com.mybatis.handlers.gender}
+	</select>
+</mapper>

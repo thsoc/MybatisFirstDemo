@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>  
+<!DOCTYPE mapper  
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="test">
+	<!-- 用户 -->
+	<select id="findUserById" parameterType="int" resultType="cn.com.mybatis.po.User">
+		select * from user where id=#{id}
+	</select>
+	<select id="findUserByUsername" parameterType="java.lang.String" resultType="cn.com.mybatis.po.User">
+	<!--#{}能防止sql注入（DBMS阶段,占位符的形式），${}只是单纯的字符串拼接（动态解析阶段）  -->
+		<!-- select * from user where username like '%${value}%' -->
+		<!-- select * from user where username like "%"#{value}"%" -->
+		select * from user where username like concat("%",#{name},"%");
+	</select>
+	<select id="findUserByUsernameEqual" parameterType="java.lang.String" resultType="cn.com.mybatis.po.User">
+	<!--#{}能防止sql注入（DBMS阶段,占位符的形式），${}只是单纯的字符串拼接（动态解析阶段）  -->
+		<!-- select * from user where username like '%${value}%' -->
+		<!-- select * from user where username like "%"#{value}"%" -->
+		select * from user where username = #{name};
+	</select>
+	<insert id="insertUser" parameterType="cn.com.mybatis.po.User">
+		<selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+			select last_insert_id()
+		</selectKey>
+		insert into user(username,password,gender,email,province,city,birthday)
+		values(#{username},#{password},#{gender},#{email},#{province},#{city},#{birthday})
+	</insert>
+	<insert id="insertUserTwo" parameterType="cn.com.mybatis.po.User" useGeneratedKeys="true" keyProperty="id">
+		<selectKey keyProperty="id" order="AFTER" resultType="java.lang.Integer">
+			select last_insert_id()
+		</selectKey>
+		insert into user(username,password,gender,email,province,city,birthday)
+		values(#{username},#{password},#{gender},#{email},#{province},#{city},#{birthday})
+	</insert>
+	<delete id="deleteUser" parameterType="java.lang.Integer">
+		delete from user where id=#{id}
+	</delete>
+	<update id="updateUserName" parameterType="cn.com.mybatis.po.User">
+		update user set username=#{username} where id=#{id}
+	</update>
+	
+	<!-- 一对一 -->
+	<!-- resultType实现 -->
+	<!-- 批次购买记录 -->
+	<!-- 全部映射 -->
+	<select id="findBatchCustomer" resultType="BatchCustomer">
+		SELECT
+			batch.*, customer.username,
+			customer.acno
+		FROM
+			batch,
+			customer
+		WHERE
+			batch.cus_id = customer.cus_id;
+	</select>
+	
+	<!-- 不能全部映射 -->
+	<select id="findBatchCustomerThree" resultType="BatchItem">
+		SELECT
+			batch.*, customer.username,
+			customer.acno
+		FROM
+			batch,
+			customer
+		WHERE
+			batch.cus_id = customer.cus_id;
+	</select>
+	
+	<select id="findBatchCustomerFour" resultMap="BatchCustomerMap">
+		SELECT
+			batch.*, customer.username,
+			customer.acno
+		FROM
+			batch,
+			customer
+		WHERE
+			batch.cus_id = customer.cus_id;
+	</select>
+	<resultMap type="BatchCustomer" id="BatchCustomerMap">
+	</resultMap>
+	
+	<select id="findBatchCustomerTwo" resultMap="test1">
+		SELECT
+			batch.*, customer.username,
+			customer.acno
+		FROM
+			batch,
+			customer
+		WHERE
+			batch.cus_id = customer.cus_id;
+	</select>
+	<resultMap type="BatchCustomer" id="test1">
+		<result column="createtime" javaType="string" jdbcType="DATE" typeHandler="cn.com.mybatis.handlers.DateTypeHandler" property="createtimeStr" />
+	</resultMap>
+	
+	<!-- resultMap实现 -->
+	<select id="findBatchCustomerToMap" resultMap="BatchInfoMap">
+		SELECT
+			batch.*,
+			customer.*
+		FROM
+			batch,
+			customer
+		WHERE
+			batch.cus_id = customer.cus_id;
+	</select>
+	<resultMap type="BatchItem" id="BatchInfoMap">
+		<id column="batch_id" property="batch_id"/>
+		<result column="cus_id" property="cus_id"/>
+		<result column="number" property="number"/>
+		<result column="createtime" property="createtime"/>
+		<result column="note" property="note"/>
+		<association property="customer" javaType="Customer">
+			<id column="cus_id" property="cus_id"/>
+			<result column="username" property="username"/>
+			<result column="acno" property="acno"/>
+			<result column="gender" property="gender"/>
+			<result column="phone" property="phone"/>
+		</association>
+	</resultMap>
+	<!-- resultMap:验证是否自动映射 -->
+	<!-- setting配置之后可以自动映射 -->
+	<select id="findBatchCustomerToMapTwo" resultMap="BatchInfoMapTwo">
+		SELECT
+			batch.*,
+			customer.*
+		FROM
+			batch,
+			customer
+		WHERE
+			batch.cus_id = customer.cus_id;
+	</select>
+	<resultMap type="BatchItem" id="BatchInfoMapTwo">
+		<id column="batch_id" property="batch_id"/>
+		<association property="customer" javaType="Customer"/>
+	</resultMap>
+	
+	<!-- 一对多 -->
+	<resultMap type="BatchItem" id="BatchAndBatchDetailResultMap"   
+               extends="BatchInfoMap">  
+        <collection property="batchDetails" ofType="cn.com.mybatis.po.BatchDetail">  
+            <!-- id:订单明细的唯一标识 -->    
+            <id column="id" property="id"/>  
+            <result column="batch_id" property="batch_id"/>  
+            <result column="product_id" property="product_id"/>  
+            <result column="product_num" property="product_num"/>  
+        </collection>  
+    </resultMap>
+    
+    <select id="findBatchAndBatchDetail" resultMap="BatchAndBatchDetailResultMap">  
+        SELECT   
+		  BATCH.*,  
+		  CUSTOMER.username,  
+		  CUSTOMER.acno,
+		  BATCHDETAIL.product_id,
+		  BATCHDETAIL.product_num
+		FROM  
+		  BATCH,  
+		  CUSTOMER,
+		  BATCHDETAIL 
+		WHERE BATCH.cus_id = CUSTOMER.cus_id AND BATCHDETAIL.batch_id=BATCH.batch_id     
+    </select>
+    
+    <!-- 一对多 -->
+    <resultMap type="Customer" id="UserAndProductsResultMap">
+    	<!-- 客户信息 -->
+    	<id column="cus_id" property="cus_id"/>
+    	<result column="username" property="username"/>
+    	<result column="acno" property="acno"/>
+    	<result column="gender" property="gender"/>
+    	<result column="phone" property="phone"/>
+    	<!-- 批次订单信息，一个客户对应多个订单 -->
+    	<collection property="batchList" ofType="Batch">
+    		<id column="batch_id" property="batch_id"/>
+    		<result column="cus_id" property="cus_id"/>
+    		<result column="number" property="number"/>
+    		<result column="createtime" property="createtime"/>
+    		<result column="createtime" property="createtime"/>
+    		<result column="note" property="note"/>
+    		<collection property="batchDetails" ofType="BatchDetail">
+    			<!-- 订单明细唯一标识 -->
+    			<id column="id" property="id"/>
+    			<result column="batch_id" property="batch_id"/>
+    			<result column="product_id" property="product_id"/>
+    			<result column="product_num" property="product_num"/>
+    			
+    			<association property="finacialProduct" javaType="FinacialProduct">
+    				<id column="product_id" property="id"/>
+    				<result column="name" property="name"/>
+    				<result column="price" property="price"/>
+    				<result column="detail" property="detail"/>
+    				<result column="imgpath" property="imgpath"/>
+    				<result column="invattime" property="invattime"/>
+    			</association>
+    		</collection>
+    	</collection>
+    </resultMap>
+    <select id="findUserAndProducts" resultMap="UserAndProductsResultMap">  
+        SELECT   
+		  BATCH.*,  
+		  CUSTOMER.username,  
+		  CUSTOMER.acno,
+		  BATCHDETAIL.product_id,
+		  BATCHDETAIL.product_num,
+		  FINACIAL_PRODUCTS.name,  
+		  FINACIAL_PRODUCTS.detail,  
+		  FINACIAL_PRODUCTS.price  
+		FROM  
+		  BATCH,  
+		  CUSTOMER,
+		  BATCHDETAIL,
+		  FINACIAL_PRODUCTS 
+		WHERE BATCH.cus_id = CUSTOMER.cus_id 
+		AND BATCHDETAIL.batch_id=BATCH.batch_id
+		AND FINACIAL_PRODUCTS.product_id=BATCHDETAIL.product_id;  
+    </select> 
+</mapper>
